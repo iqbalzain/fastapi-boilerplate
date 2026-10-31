@@ -1,0 +1,43 @@
+# Popular PyPI distributions used for typosquatting detection. One name per line.
+# Refresh occasionally from https://hugovk.github.io/top-pypi-packages/
+boto3 botocore urllib3 requests setuptools certifi idna charset-normalizer typing-extensions
+python-dateutil s3transfer packaging six pyyaml numpy pip aiobotocore cryptography pydantic
+s3fs fsspec wheel attrs pydantic-core jmespath pyasn1 cffi click rsa pycparser markupsafe
+protobuf pytz jinja2 platformdirs importlib-metadata zipp wrapt colorama tomli annotated-types
+pluggy google-api-core filelock pyjwt cachetools virtualenv jsonschema googleapis-common-protos
+google-auth pytest psutil pyparsing sqlalchemy pyarrow pandas grpcio requests-oauthlib
+oauthlib aiohttp pygments docutils werkzeug scipy multidict yarl frozenlist aiosignal
+async-timeout soupsieve beautifulsoup4 tomlkit pyopenssl rich iniconfig exceptiongroup
+decorator httpx anyio sniffio httpcore h11 distlib greenlet tzdata lxml more-itertools
+isodate requests-toolbelt tqdm openpyxl et-xmlfile pillow websocket-client grpcio-status
+msgpack proto-plus azure-core google-cloud-storage markdown-it-py mdurl coverage
+google-cloud-core google-resumable-media google-crc32c pyasn1-modules asn1crypto tenacity
+pynacl paramiko bcrypt flask itsdangerous blinker tabulate scikit-learn joblib threadpoolctl
+regex networkx sqlparse chardet pexpect ptyprocess awscli docker fastapi starlette uvicorn
+redis celery kombu billiard amqp vine django djangorestframework gunicorn alembic mako
+psycopg2 psycopg2-binary psycopg asyncpg aiofiles python-dotenv dnspython email-validator
+structlog loguru sentry-sdk prometheus-client opentelemetry-api opentelemetry-sdk
+matplotlib kiwisolver cycler fonttools contourpy shapely pyproj seaborn plotly dash
+torch torchvision transformers tokenizers huggingface-hub safetensors datasets accelerate
+tensorflow keras scikit-image opencv-python imageio xgboost lightgbm catboost statsmodels
+patsy nltk spacy gensim openai anthropic langchain langchain-core tiktoken
+black ruff mypy flake8 pycodestyle pyflakes isort bandit pylint autopep8 pre-commit
+identify nodeenv cfgv pytest-cov pytest-asyncio pytest-mock pytest-xdist execnet
+hypothesis faker factory-boy freezegun responses respx mock tox nox poetry poetry-core
+hatchling pdm uv pipenv twine readme-renderer keyring secretstorage jeepney
+pyzmq ipython jupyter jupyter-core jupyter-client notebook ipykernel nbformat nbconvert
+traitlets jedi parso prompt-toolkit wcwidth pickleshare backcall matplotlib-inline
+tornado pywin32 pywinpty debugpy nest-asyncio types-requests types-pyyaml types-setuptools
+mccabe toml snowflake-connector-python pymysql mysqlclient mysql-connector-python pymongo
+motor elasticsearch opensearch-py cassandra-driver kafka-python confluent-kafka pika
+pyodbc cx-oracle oracledb sqlmodel databases peewee pony tortoise-orm
+selenium playwright webdriver-manager scrapy twisted zope-interface incremental constantly
+automat hyperlink service-identity pyhamcrest
+pydantic-settings orjson ujson simplejson msgspec marshmallow apispec cattrs
+arrow pendulum humanize python-slugify text-unidecode unidecode babel
+pyrsistent referencing jsonschema-specifications rpds-py jsonpointer jsonpatch
+argcomplete typer shellingham questionary inquirer fire docopt
+passlib argon2-cffi argon2-cffi-bindings pwdlib python-jose ecdsa authlib
+itsdangerous secure flask-login flask-wtf wtforms flask-sqlalchemy flask-migrate flask-cors
+markdown mistune bleach html5lib webencodings defusedxml xmltodict
+pyinstaller cython numba llvmlite

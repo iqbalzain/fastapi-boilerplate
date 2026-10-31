@@ -1,0 +1,40 @@
+# Dependency governance policy enforced by tools/depguard.
+# Every rule here is checked when a package is added (Claude Code hook, `make add`),
+# when pyproject.toml/uv.lock change (pre-commit, CI), and on the weekly schedule.
+
+[policy]
+min_project_age_days = 90          # reject brand-new projects (typosquats, drive-bys)
+min_release_count = 3              # at least a few releases = some maintenance history
+max_days_since_last_release = 730  # warn on packages abandoned for 2+ years
+min_version_age_days = 7           # cooldown: never install a version published < 7 days ago
+require_wheel = true               # sdist-only installs execute arbitrary setup.py code
+max_direct_dependencies = 30       # warn on dependency bloat
+typosquat_max_distance = 2         # edit distance to a top package that triggers rejection
+block_on_vulnerability = true      # any known OSV advisory on the pinned version fails
+fail_on_network_error = true       # fail closed when PyPI/OSV cannot be reached
+python_version = "3.12"
+
+[licenses]
+# Substring match (case-insensitive) against license expression / classifiers.
+allowed = ["MIT", "BSD", "Apache", "PSF", "Python Software Foundation", "ISC", "MPL",
+           "Mozilla Public License", "Unlicense", "0BSD", "Zlib", "LGPL"]
+denied  = ["AGPL", "SSPL", "Commons Clause", "Business Source License", "Elastic License"]
+
+[packages]
+# Never allowed, regardless of other checks.
+denied = ["python-jose", "ctx", "pymafka", "colourama", "request", "urlib3", "djanga"]
+# Well-known packages that skip *heuristic* checks (age, release count, typosquat).
+# Vulnerability, yank and license checks always run.
+trusted = []
+
+[vulnerabilities]
+# ignore = [{ id = "GHSA-xxxx-xxxx-xxxx", reason = "not reachable: feature unused", expires = "2026-12-31" }]
+ignore = []
+
+# Per-package, per-rule exceptions. Every exception needs a reason and an expiry.
+# [[exceptions]]
+# package = "some-internal-lib"
+# rule = "min_project_age_days"
+# reason = "First-party package published last week"
+# expires = "2026-12-31"
+exceptions = []

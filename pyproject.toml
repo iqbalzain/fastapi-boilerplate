@@ -1,0 +1,136 @@
+[project]
+name = "fastapi-boilerplate"
+version = "0.1.0"
+description = "Production-grade FastAPI service template: 12-factor, secure by default, pluggable."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Your Team" }]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "pydantic[email]>=2.9,<3",
+  "pydantic-settings>=2.7,<3",
+  "sqlalchemy[asyncio]>=2.0.35,<3",
+  "asyncpg>=0.29,<1",
+  "alembic>=1.13,<2",
+  "redis>=5.0,<7",
+  "structlog>=24.4,<26",
+  "pyjwt[crypto]>=2.9,<3",
+  "pwdlib[argon2]>=0.2,<1",
+]
+
+[project.optional-dependencies]
+# Optional integrations consumed by the plugins in src/app/plugins.
+observability = [
+  "prometheus-client>=0.21,<1",
+  "sentry-sdk[fastapi]>=2.0,<3",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5.0",
+  "httpx>=0.27",
+  "asgi-lifespan>=2.1",
+  "aiosqlite>=0.20",
+  "fakeredis>=2.26",
+  "ruff>=0.7",
+  "mypy>=1.13",
+  "bandit>=1.7.10",
+  "pip-audit>=2.7",
+  "pre-commit>=4.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+[tool.uv]
+# Only ever resolve from the public index pinned below. Add private indexes
+# explicitly; never let a transitive dependency pick its own index.
+index-strategy = "first-index"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+# ---------------------------------------------------------------------------
+# Quality tooling
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",      # pycodestyle
+  "F",           # pyflakes
+  "I",           # isort
+  "B",           # bugbear
+  "UP",          # pyupgrade
+  "S",           # bandit (security)
+  "N",           # pep8-naming
+  "ASYNC",       # async pitfalls
+  "C4",          # comprehensions
+  "DTZ",         # naive datetimes
+  "T20",         # no print() in app code
+  "SIM",         # simplify
+  "RET",         # return hygiene
+  "PTH",         # pathlib
+  "RUF",
+]
+ignore = [
+  "B008",   # FastAPI uses Depends() in defaults by design
+  "RUF012", # pydantic/sqlalchemy class attrs
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311", "DTZ"]
+"tools/**" = ["T20"]            # CLI output is the point
+"migrations/**" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "depguard"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = ["src", "tools"]
+packages = ["app", "depguard"]
+plugins = ["pydantic.mypy"]
+strict = true
+warn_unreachable = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+addopts = "-ra --strict-markers --cov=app --cov=depguard --cov-report=term-missing"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+pythonpath = ["src", "tools"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/app", "tools/depguard"]
+omit = ["src/app/plugins/*", "tools/depguard/__main__.py", "tools/depguard/hook.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B104"]  # binding 0.0.0.0 inside a container is intentional

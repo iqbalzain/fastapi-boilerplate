@@ -1,0 +1,82 @@
+name: Dependency health
+
+# Weekly: audit every pin for advisories, report outdated packages, and open a
+# PR with all policy-compliant upgrades (respecting the 7-day cooldown) if the
+# test-suite still passes. Renovate (renovate.json) can replace the PR half.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  SECRET_KEY: ci-only-secret-key-that-is-long-enough-for-validation-0123456789
+  ENVIRONMENT: test
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    outputs:
+      vulnerable: ${{ steps.audit.outputs.vulnerable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Audit lockfile
+        id: audit
+        run: |
+          set +e
+          PYTHONPATH=tools python -m depguard audit --all --format markdown > audit.md
+          code=$?
+          echo "## Lockfile audit" >> "$GITHUB_STEP_SUMMARY"; cat audit.md >> "$GITHUB_STEP_SUMMARY"
+          echo "vulnerable=$([ $code -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Outdated report
+        run: |
+          echo "## Outdated packages" >> "$GITHUB_STEP_SUMMARY"
+          PYTHONPATH=tools python -m depguard outdated --all --format markdown >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Open issue when advisories exist
+        if: steps.audit.outputs.vulnerable == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('audit.md', 'utf8');
+            const title = 'Security: vulnerable dependency pins detected';
+            const { data: issues } = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: 'security' });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body, labels: ['security', 'dependencies'] });
+            }
+
+  upgrade:
+    runs-on: ubuntu-latest
+    needs: audit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Apply cooldown-aware upgrades and run the suite
+        run: |
+          uv sync --all-groups
+          PYTHONPATH=tools uv run python -m depguard outdated --all --apply --test
+      - name: Re-vet the upgraded lockfile
+        run: PYTHONPATH=tools python -m depguard audit --changed --base HEAD --format markdown | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deps/weekly-upgrade
+          title: "chore(deps): weekly dependency upgrade"
+          commit-message: "chore(deps): upgrade dependencies (policy-compliant, tests green)"
+          labels: dependencies
+          body: |
+            Automated upgrade produced by `depguard outdated --apply --test`.
+            Every new pin passed the cooldown, yank, wheel, license and OSV checks in `depguard.toml`.
+            See the workflow summary for the audit tables.
