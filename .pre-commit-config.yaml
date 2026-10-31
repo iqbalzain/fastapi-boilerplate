@@ -47,7 +47,7 @@ repos:
         types: [python]
       - id: depguard
         name: depguard (vet new/upgraded dependencies)
-        entry: uv run python -m depguard audit --changed --base HEAD
+        entry: env PYTHONPATH=tools uv run python -m depguard audit --changed --base HEAD
         language: system
         pass_filenames: false
         files: ^(pyproject\.toml|uv\.lock|depguard\.toml)$

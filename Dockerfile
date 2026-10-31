@@ -21,7 +21,15 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
     PATH="/app/.venv/bin:$PATH" \
     LOG_FORMAT=json
 
-RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app --home /app app
+# Apply Debian security updates, then strip the system pip: the app runs from
+# its own venv and a production image should carry no package installer.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip uninstall -y pip setuptools wheel 2>/dev/null || true \
+    && rm -rf /usr/local/lib/python3.12/site-packages/pip* /usr/local/lib/python3.12/site-packages/setuptools* \
+    && groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app --home /app app
 WORKDIR /app
 COPY --from=builder --chown=app:app /app /app
 USER app

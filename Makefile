@@ -2,7 +2,7 @@
 # Override when uv is not first on PATH, e.g. make test UV=~/.local/bin/uv
 UV ?= uv
 PY := $(UV) run
-DEPGUARD := $(PY) python -m depguard
+DEPGUARD := PYTHONPATH=tools $(PY) python -m depguard
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
