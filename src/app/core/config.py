@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     cookie_domain: str | None = None
     cookie_samesite: Literal["lax", "strict", "none"] = "lax"
-    refresh_cookie_name: str = "__Host-refresh_token"
+    refresh_cookie_name: str = "refresh_token"
     csrf_enabled: bool = True
     csrf_cookie_name: str = "csrf_token"
     csrf_header_name: str = "X-CSRF-Token"
@@ -120,6 +120,15 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         return value
 
+    @field_validator("redis_url")
+    @classmethod
+    def _require_known_redis_scheme(cls, value: SecretStr) -> SecretStr:
+        url = value.get_secret_value()
+        if not url.startswith(("redis://", "rediss://", "unix://", "memory://")):
+            msg = "REDIS_URL must start with redis://, rediss://, unix:// or memory:// (dev only)"
+            raise ValueError(msg)
+        return value
+
     @model_validator(mode="after")
     def _enforce_production_invariants(self) -> Self:
         if self.environment is not Environment.production:
@@ -140,6 +149,10 @@ class Settings(BaseSettings):
             problems.append("CORS_ALLOWED_ORIGINS may not contain '*'")
         if "*" in self.trusted_hosts:
             problems.append("TRUSTED_HOSTS may not contain '*'")
+        if self.is_sqlite:
+            problems.append("DATABASE_URL must be PostgreSQL (SQLite is for local development)")
+        if self.redis_is_in_memory:
+            problems.append("REDIS_URL must be a real Redis (memory:// is for local development)")
         if problems:
             raise ValueError("Unsafe production configuration: " + "; ".join(problems))
         return self
@@ -157,6 +170,17 @@ class Settings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.get_secret_value().startswith("sqlite")
+
+    @property
+    def effective_refresh_cookie_name(self) -> str:
+        """``__Secure-`` prefix over HTTPS. ``__Host-`` is not usable: it forbids a Path,
+        and scoping the cookie to the auth path is the stronger property."""
+        prefix = "__Secure-" if self.cookie_secure else ""
+        return f"{prefix}{self.refresh_cookie_name}"
+
+    @property
+    def redis_is_in_memory(self) -> bool:
+        return self.redis_url.get_secret_value().startswith("memory://")
 
 
 @lru_cache(maxsize=1)

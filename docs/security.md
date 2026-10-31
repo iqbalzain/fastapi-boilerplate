@@ -8,7 +8,7 @@
 | Injection (header/log) | Request-ID whitelist regex; structlog key/value logging; secret redaction processor | `middleware/request_context.py`, `core/logging.py` |
 | Broken auth | Argon2id; JWT with `iss`/`aud`/`typ`/`jti`/`nbf`; 15-min access TTL; refresh rotation with replay detection; revocation denylist (fail-closed) | `core/security.py`, `modules/auth/`, `infra/token_store.py` |
 | Credential stuffing / enumeration | Per-IP login limit (5/min); identical error for unknown user vs wrong password; dummy-hash verification equalises timing | `modules/auth/router.py`, `modules/users/service.py` |
-| CSRF | Signed double-submit cookie; `SameSite`; `__Host-` prefixed refresh cookie scoped to `/auth`; bearer clients exempt | `middleware/csrf.py` |
+| CSRF | Signed double-submit cookie; `SameSite`; `__Secure-` prefixed refresh cookie scoped to `/auth`; bearer clients exempt | `middleware/csrf.py` |
 | XSS / clickjacking / MIME sniffing | Deny-all CSP for API, CDN-scoped CSP for docs; `X-Frame-Options`, `nosniff`, COOP/CORP, no-store | `middleware/security_headers.py` |
 | Host header attacks | `TrustedHostMiddleware`; wildcard forbidden in production | `middleware/stack.py`, `core/config.py` |
 | Cross-origin abuse | Explicit CORS allow-list, credentials only for listed origins, wildcard forbidden in production | `middleware/stack.py` |

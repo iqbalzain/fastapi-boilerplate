@@ -2,7 +2,8 @@
 
 Access tokens travel in the JSON body (stored in memory by SPAs). Refresh tokens
 are set as an ``HttpOnly`` cookie scoped to the auth path so JavaScript cannot
-read them and they are not sent with ordinary API calls.
+read them and they are not sent with ordinary API calls. Over HTTPS the cookie
+carries the ``__Secure-`` prefix (``__Host-`` would forbid the path scoping).
 """
 
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -24,7 +25,7 @@ def _refresh_cookie_path(settings: Settings) -> str:
 
 def _set_refresh_cookie(response: Response, settings: Settings, pair: TokenPair) -> None:
     response.set_cookie(
-        key=settings.refresh_cookie_name,
+        key=settings.effective_refresh_cookie_name,
         value=pair.refresh.token,
         max_age=settings.refresh_token_ttl_seconds,
         path=_refresh_cookie_path(settings),
@@ -37,7 +38,7 @@ def _set_refresh_cookie(response: Response, settings: Settings, pair: TokenPair)
 
 def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     response.delete_cookie(
-        key=settings.refresh_cookie_name,
+        key=settings.effective_refresh_cookie_name,
         path=_refresh_cookie_path(settings),
         domain=settings.cookie_domain,
         secure=settings.cookie_secure,
@@ -93,7 +94,7 @@ async def login(
 async def refresh(
     request: Request, response: Response, settings: SettingsDep, denylist: DenylistDep
 ) -> TokenResponse:
-    token = request.cookies.get(settings.refresh_cookie_name)
+    token = request.cookies.get(settings.effective_refresh_cookie_name)
     if not token:
         raise UnauthorizedError("Missing refresh token.")
     pair = await AuthService(settings, denylist).rotate(token)
@@ -111,7 +112,7 @@ async def logout(
 ) -> Response:
     service = AuthService(settings, denylist)
     await service.revoke_access(request.state.access_jti, request.state.access_exp)
-    await service.revoke_refresh(request.cookies.get(settings.refresh_cookie_name))
+    await service.revoke_refresh(request.cookies.get(settings.effective_refresh_cookie_name))
     _clear_refresh_cookie(response, settings)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response

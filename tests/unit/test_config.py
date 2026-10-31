@@ -18,6 +18,7 @@ def test_docs_default_off_in_production_on_elsewhere():
         environment=Environment.production,
         cookie_secure=True,
         log_format="json",
+        database_url=SecretStr("postgresql+asyncpg://u:p@db/app"),
     )
     assert prod.docs_are_enabled is False
 
@@ -42,3 +43,29 @@ def test_database_url_requires_async_driver():
 def test_settings_are_frozen(settings: Settings):
     with pytest.raises(ValidationError):
         settings.debug = True  # type: ignore[misc]
+
+
+def test_redis_url_scheme_validation():
+    assert make_settings(redis_url=SecretStr("memory://")).redis_is_in_memory
+    assert make_settings(redis_url=SecretStr("rediss://host:6380/0")).redis_is_in_memory is False
+    with pytest.raises(ValidationError, match="REDIS_URL must start with"):
+        make_settings(redis_url=SecretStr("http://localhost"))
+
+
+def test_production_rejects_dev_only_backends():
+    base = {"environment": Environment.production, "cookie_secure": True, "log_format": "json"}
+    with pytest.raises(ValidationError, match="SQLite is for local development"):
+        make_settings(**base, database_url=SecretStr("sqlite+aiosqlite:///./dev.db"))
+    with pytest.raises(ValidationError, match="memory:// is for local development"):
+        make_settings(
+            **base,
+            database_url=SecretStr("postgresql+asyncpg://u:p@db/app"),
+            redis_url=SecretStr("memory://"),
+        )
+
+
+def test_refresh_cookie_gets_secure_prefix_only_over_https():
+    assert make_settings(cookie_secure=False).effective_refresh_cookie_name == "refresh_token"
+    assert (
+        make_settings(cookie_secure=True).effective_refresh_cookie_name == "__Secure-refresh_token"
+    )

@@ -11,6 +11,9 @@ build/
 .env.*
 !.env.example
 
+# Local dev database (make dev-lite)
+dev.db
+
 # Tooling
 .pytest_cache/
 .mypy_cache/

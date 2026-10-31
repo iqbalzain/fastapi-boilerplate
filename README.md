@@ -5,16 +5,60 @@ pluggable, and shipped with **dependency governance that enforces itself**: ever
 added to this repo is vetted for authenticity, vulnerabilities, abandonment and licence
 before it is installed, and the lockfile is re-audited on every commit, every PR and every week.
 
-## Quick start
+## Running it
+
+Docker is **not** required. The service needs Python 3.12, PostgreSQL and Redis; pick whichever
+way of providing them suits you. Every route below ends with the API on http://localhost:8000/docs.
+
+### Prerequisites (all routes except Docker-only)
 
 ```bash
-cp .env.example .env            # then set SECRET_KEY (python -c "import secrets; print(secrets.token_urlsafe(64))")
-make install                    # uv sync + pre-commit hooks
-make up                         # postgres + redis + migrations + API in Docker
-# or locally:
-docker compose up -d postgres redis && make migrate && make dev
-open http://localhost:8000/docs
+# uv: https://docs.astral.sh/uv/getting-started/installation/  (e.g. brew install uv)
+uv --version
+cp .env.example .env
+python3 -c "import secrets; print(secrets.token_urlsafe(64))"   # paste as SECRET_KEY in .env
+make install                      # uv sync --frozen (creates .venv) + installs pre-commit hooks
 ```
+
+> If `uv` is a pyenv shim on your machine it may refuse to run because `.python-version` asks
+> for 3.12. Either install uv standalone (`brew install uv`) or pass the binary explicitly:
+> `make install UV=/path/to/uv`.
+
+### Route A: no Docker, zero external services (fastest first run)
+
+SQLite file + in-process Redis. Fine for development and the test-suite; refused in production.
+
+```bash
+make dev-lite                     # runs migrations against ./dev.db, then uvicorn with hot reload
+```
+
+### Route B: no Docker, local PostgreSQL and Redis
+
+```bash
+brew install postgresql@16 redis && brew services start postgresql@16 && brew services start redis
+createdb fastapi_boilerplate_dev
+# in .env:
+#   DATABASE_URL=postgresql+asyncpg://$USER@localhost:5432/fastapi_boilerplate_dev
+#   REDIS_URL=redis://localhost:6379/0
+make migrate && make dev
+```
+
+### Route C: Docker for everything
+
+```bash
+make up                           # builds the image; starts postgres, redis, migrations, API
+make down                         # stop and remove volumes
+```
+
+### Route D: Docker only for the services, app in your venv
+
+```bash
+docker compose up -d postgres redis
+make migrate && make dev          # .env defaults already point at localhost:5432 / 6379
+```
+
+Routes A and B are exercised by the test-suite and were verified by hand; route C is built and
+smoke-tested on every CI run (`compose-smoke` job).
 
 ```bash
 make test        # pytest, 80% coverage gate
@@ -31,7 +75,7 @@ make upgrade     # apply upgrades, re-vet, run tests
 | Config | `pydantic-settings`, typed, validated at boot; production refuses weak/placeholder secrets, debug mode, insecure cookies, wildcard CORS/hosts |
 | Logging | `structlog` JSON to stdout, request-scoped `request_id`, secret redaction |
 | Errors | RFC 9457 `application/problem+json` everywhere; stack traces never leak |
-| Auth | Argon2id passwords, short-lived JWT access tokens, rotating `HttpOnly` `__Host-` refresh cookies, revocation denylist, replay detection, timing-safe login |
+| Auth | Argon2id passwords, short-lived JWT access tokens, rotating `HttpOnly` `__Secure-` refresh cookies, revocation denylist, replay detection, timing-safe login |
 | CSRF | Signed double-submit cookie middleware; bearer-token API clients exempt |
 | Headers | CSP (deny-all for API, CDN-scoped for docs), HSTS, nosniff, frame-deny, COOP/CORP, Referrer- & Permissions-Policy |
 | Abuse controls | Redis fixed-window rate limiting (global + per-route), body-size limit for declared *and* chunked bodies, trusted-host + strict CORS |

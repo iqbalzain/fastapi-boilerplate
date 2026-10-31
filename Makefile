@@ -11,8 +11,12 @@ install: ## Install all dependencies (locked) and git hooks
 	$(UV) sync --frozen --all-groups
 	$(PY) pre-commit install --install-hooks
 
-dev: ## Run the API with hot reload
+dev: ## Run the API with hot reload (uses DATABASE_URL/REDIS_URL from .env)
 	$(PY) uvicorn app.main:create_app --factory --reload --port 8000
+
+dev-lite: ## Run with zero external services: SQLite file + in-memory Redis (dev only)
+	DATABASE_URL=sqlite+aiosqlite:///./dev.db REDIS_URL=memory:// $(PY) alembic upgrade head
+	DATABASE_URL=sqlite+aiosqlite:///./dev.db REDIS_URL=memory:// $(PY) uvicorn app.main:create_app --factory --reload --port 8000
 
 test: ## Run the test-suite with coverage gate
 	$(PY) pytest
@@ -61,4 +65,4 @@ up: ## Start postgres, redis and the API
 down: ## Stop containers
 	docker compose down -v
 
-.PHONY: help install dev test lint fmt migrate migration add vet audit outdated upgrade upgrade-security up down
+.PHONY: help install dev dev-lite test lint fmt migrate migration add vet audit outdated upgrade upgrade-security up down

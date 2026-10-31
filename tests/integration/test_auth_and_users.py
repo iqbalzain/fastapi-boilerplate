@@ -16,7 +16,7 @@ async def test_register_login_me_flow(client, api):
     assert me.json()["id"] == user["id"]
 
     # refresh cookie is HttpOnly and path-scoped
-    jar = [c for c in client.cookies.jar if c.name == "__Host-refresh_token"]
+    jar = [c for c in client.cookies.jar if c.name == "refresh_token"]
     assert jar and jar[0].path == f"{api}/auth"
     assert jar[0].has_nonstandard_attr("HttpOnly")
 
@@ -60,20 +60,20 @@ async def test_protected_routes_require_valid_token(client, api):
 async def test_refresh_rotation_and_replay_detection(client, api):
     await register(client, api)
     await login(client, api)
-    old_cookie = client.cookies.get("__Host-refresh_token")
+    old_cookie = client.cookies.get("refresh_token")
 
     first = await client.post(f"{api}/auth/refresh", headers=BEARER_EXEMPT)
     assert first.status_code == 200
-    new_cookie = client.cookies.get("__Host-refresh_token")
+    new_cookie = client.cookies.get("refresh_token")
     assert new_cookie != old_cookie
 
     # Replaying the burned token must fail.
-    client.cookies.set("__Host-refresh_token", old_cookie, path=f"{api}/auth")
+    client.cookies.set("refresh_token", old_cookie, path=f"{api}/auth")
     replay = await client.post(f"{api}/auth/refresh", headers=BEARER_EXEMPT)
     assert replay.status_code == 401
     assert "revoked" in replay.json()["detail"]
 
-    client.cookies.delete("__Host-refresh_token", path=f"{api}/auth")
+    client.cookies.delete("refresh_token", path=f"{api}/auth")
     assert (await client.post(f"{api}/auth/refresh", headers=BEARER_EXEMPT)).status_code == 401
 
 
@@ -83,7 +83,7 @@ async def test_logout_revokes_access_and_refresh(client, api):
     auth = {"Authorization": f"Bearer {token}"}
     assert (await client.post(f"{api}/auth/logout", headers=auth)).status_code == 204
     assert (await client.get(f"{api}/users/me", headers=auth)).status_code == 401
-    assert client.cookies.get("__Host-refresh_token") is None
+    assert client.cookies.get("refresh_token") is None
 
 
 async def test_update_profile_and_admin_routes(client, api, app):
