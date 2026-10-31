@@ -87,7 +87,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with: { context: ., push: false, load: true, tags: "app:ci" }
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: app:ci
           format: sarif
